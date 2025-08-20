@@ -71,7 +71,8 @@
     <h1>Progress Cetakan Tahunan</h1>
 
     <label>Target Cetakan Tahunan</label>
-    <input type="number" id="target" value="10000" readonly>
+    <input type="number" id="target" placeholder="Masukkan target cetakan">
+    <button onclick="simpanTarget()">Simpan Target</button>
 
     <label>Input Cetakan Hari Ini</label>
     <input type="number" id="inputCetakan" placeholder="Masukkan jumlah cetakan">
@@ -93,12 +94,14 @@
 
   <script>
     // Ambil data dari localStorage
-    let target = parseInt(document.getElementById("target").value);
+    let target = parseInt(localStorage.getItem("targetCetakan")) || 10000;
     let cetakan = JSON.parse(localStorage.getItem("dataCetakan")) || [];
+
+    document.getElementById("target").value = target;
 
     function renderData() {
       let total = cetakan.reduce((a, b) => a + b, 0);
-      let persen = ((total / target) * 100).toFixed(2);
+      let persen = target > 0 ? ((total / target) * 100).toFixed(2) : 0;
 
       // Update UI
       document.getElementById("totalCetakan").innerText = total;
@@ -116,6 +119,17 @@
         li.innerText = `Input ${idx+1}: ${val} cetakan`;
         riwayat.appendChild(li);
       });
+    }
+
+    function simpanTarget() {
+      let newTarget = parseInt(document.getElementById("target").value);
+      if (!newTarget || newTarget <= 0) {
+        alert("Masukkan target yang valid!");
+        return;
+      }
+      target = newTarget;
+      localStorage.setItem("targetCetakan", target);
+      renderData();
     }
 
     function tambahData() {
