@@ -3,30 +3,36 @@
 <head>
   <meta charset="UTF-8">
   <title>Progress Cetakan Tahunan</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
     body {
       font-family: Arial, sans-serif;
-      margin: 40px;
+      margin: 20px;
       background: #f9f9f9;
       color: #333;
     }
-    h1 { color: #ff6600; }
+    h1 { color: #ff6600; font-size: 20px; }
+    .cards {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 20px;
+    }
     .container {
-      max-width: 500px;
+      flex: 1 1 300px;
       background: #fff;
-      padding: 20px;
+      padding: 15px;
       border-radius: 10px;
       box-shadow: 0 4px 8px rgba(0,0,0,0.1);
     }
     label {
       font-weight: bold;
       display: block;
-      margin-top: 10px;
+      margin-top: 5px;
     }
     input[type=number] {
       width: 100%;
-      padding: 8px;
-      margin: 8px 0;
+      padding: 6px;
+      margin: 6px 0;
       border: 1px solid #ccc;
       border-radius: 5px;
     }
@@ -34,155 +40,138 @@
       background: #ff6600;
       color: white;
       border: none;
-      padding: 10px 20px;
+      padding: 8px 16px;
       border-radius: 5px;
       cursor: pointer;
-      margin-top: 10px;
+      margin-top: 5px;
     }
-    button:hover {
-      background: #e65c00;
-    }
+    button:hover { background: #e65c00; }
     .progress {
-      margin-top: 20px;
+      margin-top: 10px;
       width: 100%;
       background: #ddd;
       border-radius: 20px;
       overflow: hidden;
     }
     .progress-bar {
-      height: 25px;
+      height: 20px;
       background: #ff6600;
       width: 0%;
       text-align: center;
       color: white;
-      line-height: 25px;
+      line-height: 20px;
       transition: width 0.5s;
     }
-    .data-list {
-      margin-top: 20px;
-    }
-    .data-list ul {
-      padding-left: 20px;
-    }
     .chart-container {
-      margin-top: 20px;
+      margin-top: 10px;
       text-align: center;
     }
-    canvas {
-      max-width: 300px;
-    }
+    canvas { max-width: 200px; }
+    .data-list { margin-top: 10px; }
+    .data-list ul { padding-left: 20px; font-size: 14px; }
   </style>
 </head>
 <body>
-  <div class="container">
-    <h1>Target Suri Offset</h1>
+  <h1>Dashboard Cetakan (14 Card)</h1>
 
-    <label>Target Suri Pelat</label>
-    <input type="number" id="target" placeholder="Masukkan target cetakan">
-    <button onclick="simpanTarget()">Simpan Target</button>
+  <div class="cards">
+    <!-- 14 Card -->
+    <script>
+      // generate card html dengan JS agar tidak ngetik panjang
+      let cardNames = [
+        "Suri Offset","Mesin 2","Mesin 3","Mesin 4","Mesin 5","Mesin 6","Mesin 7",
+        "Mesin 8","Mesin 9","Mesin 10","Mesin 11","Mesin 12","Mesin 13","Mesin 14"
+      ];
+      for (let i=1;i<=14;i++){
+        document.write(`
+        <div class="container">
+          <h1>Target ${cardNames[i-1]}</h1>
 
-    <label>Input Cetakan Hari Ini</label>
-    <input type="number" id="inputCetakan" placeholder="Masukkan jumlah cetakan">
-    <button onclick="tambahData()">Tambah Data</button>
+          <label>Target Cetakan</label>
+          <input type="number" id="target${i}" placeholder="Masukkan target cetakan">
+          <button onclick="simpanTarget(${i})">Simpan Target</button>
 
-    <div class="progress">
-      <div class="progress-bar" id="progressBar">0%</div>
-    </div>
+          <label>Input Cetakan Hari Ini</label>
+          <input type="number" id="inputCetakan${i}" placeholder="Masukkan jumlah cetakan">
+          <button onclick="tambahData(${i})">Tambah Data</button>
 
-    <h3>Total Cetakan: <span id="totalCetakan">0</span></h3>
-    <h3>Target Suri: <span id="persentase">0%</span></h3>
+          <div class="progress">
+            <div class="progress-bar" id="progressBar${i}">0%</div>
+          </div>
 
-    <!-- Grafik Lingkaran -->
-    <div class="chart-container">
-      <canvas id="pieChart"></canvas>
-    </div>
+          <h3>Total Cetakan: <span id="totalCetakan${i}">0</span></h3>
+          <h3>Pencapaian: <span id="persentase${i}">0%</span></h3>
 
-    <div class="data-list">
-      <h3>Riwayat Input:</h3>
-      <ul id="riwayat"></ul>
-    </div>
+          <div class="chart-container">
+            <canvas id="pieChart${i}"></canvas>
+          </div>
+
+          <div class="data-list">
+            <h3>Riwayat Input:</h3>
+            <ul id="riwayat${i}"></ul>
+          </div>
+        </div>
+        `);
+      }
+    </script>
   </div>
 
-  <!-- Tambah Chart.js -->
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
   <script>
-    // Ambil data dari localStorage
-    let target = parseInt(localStorage.getItem("targetCetakan")) || 10000;
-    let cetakan = JSON.parse(localStorage.getItem("dataCetakan")) || [];
+    let dataCetakan = {};
+    let targetCetakan = {};
+    let charts = {};
 
-    document.getElementById("target").value = target;
-
-    // Inisialisasi chart
-    let ctx = document.getElementById("pieChart").getContext("2d");
-    let pieChart = new Chart(ctx, {
-      type: "doughnut",
-      data: {
-        labels: ["Tercapai", "Sisa"],
-        datasets: [{
-          data: [0, 100],
-          backgroundColor: ["#ff6600", "#ddd"]
-        }]
-      },
-      options: {
-        responsive: true,
-        plugins: {
-          legend: { position: "bottom" }
-        }
-      }
-    });
-
-    function renderData() {
-      let total = cetakan.reduce((a, b) => a + b, 0);
-      let persen = target > 0 ? ((total / target) * 100).toFixed(2) : 0;
-
-      // Update UI
-      document.getElementById("totalCetakan").innerText = total;
-      document.getElementById("persentase").innerText = persen + "%";
-
-      let progressBar = document.getElementById("progressBar");
-      progressBar.style.width = Math.min(persen, 100) + "%";
-      progressBar.innerText = persen + "%";
-
-      // Update chart
-      pieChart.data.datasets[0].data = [persen, 100 - persen];
-      pieChart.update();
-
-      // Riwayat
-      let riwayat = document.getElementById("riwayat");
-      riwayat.innerHTML = "";
-      cetakan.forEach((val, idx) => {
-        let li = document.createElement("li");
-        li.innerText = `Input ${idx+1}: ${val} cetakan`;
-        riwayat.appendChild(li);
+    function initChart(id){
+      let ctx=document.getElementById("pieChart"+id).getContext("2d");
+      charts[id]=new Chart(ctx,{
+        type:"doughnut",
+        data:{labels:["Tercapai","Sisa"],datasets:[{data:[0,100],backgroundColor:["#ff6600","#ddd"]}]},
+        options:{responsive:true,plugins:{legend:{position:"bottom"}}}
       });
     }
 
-    function simpanTarget() {
-      let newTarget = parseInt(document.getElementById("target").value);
-      if (!newTarget || newTarget <= 0) {
-        alert("Masukkan target yang valid!");
-        return;
-      }
-      target = newTarget;
-      localStorage.setItem("targetCetakan", target);
-      renderData();
+    function renderData(id){
+      let total=(dataCetakan[id]||[]).reduce((a,b)=>a+b,0);
+      let target=targetCetakan[id]||0;
+      let persen=target>0?((total/target)*100).toFixed(2):0;
+
+      document.getElementById("totalCetakan"+id).innerText=total;
+      document.getElementById("persentase"+id).innerText=persen+"%";
+
+      let pb=document.getElementById("progressBar"+id);
+      pb.style.width=Math.min(persen,100)+"%";
+      pb.innerText=persen+"%";
+
+      charts[id].data.datasets[0].data=[persen,100-persen];
+      charts[id].update();
+
+      let riw=document.getElementById("riwayat"+id);
+      riw.innerHTML="";
+      (dataCetakan[id]||[]).forEach((val,idx)=>{
+        let li=document.createElement("li");
+        li.innerText=`Input ${idx+1}: ${val} cetakan`;
+        riw.appendChild(li);
+      });
     }
 
-    function tambahData() {
-      let input = parseInt(document.getElementById("inputCetakan").value);
-      if (!input || input <= 0) {
-        alert("Masukkan jumlah cetakan yang valid!");
-        return;
-      }
-      cetakan.push(input);
-      localStorage.setItem("dataCetakan", JSON.stringify(cetakan));
-      document.getElementById("inputCetakan").value = "";
-      renderData();
+    function simpanTarget(id){
+      let newTarget=parseInt(document.getElementById("target"+id).value);
+      if(!newTarget||newTarget<=0){alert("Masukkan target valid!");return;}
+      targetCetakan[id]=newTarget;
+      renderData(id);
     }
 
-    // Render awal
-    renderData();
+    function tambahData(id){
+      let input=parseInt(document.getElementById("inputCetakan"+id).value);
+      if(!input||input<=0){alert("Masukkan jumlah cetakan valid!");return;}
+      if(!dataCetakan[id]) dataCetakan[id]=[];
+      dataCetakan[id].push(input);
+      document.getElementById("inputCetakan"+id).value="";
+      renderData(id);
+    }
+
+    // Inisialisasi semua chart
+    for (let i=1;i<=14;i++){ initChart(i); }
   </script>
 </body>
 </html>
